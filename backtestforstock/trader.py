@@ -3,6 +3,20 @@ from backtestforstock.datafetchers.core import DataFetcher
 from backtestforstock.features.core import FeatureProcessor
 from backtestforstock.strategies.core import Strategy
 from backtestforstock.account_information import AccountInformation
+from datetime import timedelta
+
+
+def validate_date_step_interval(s: str) -> timedelta:
+    if s[-1] not in ["m", "h", "d"]:
+        raise ValueError(f"date_step_interval の単位は m, h, dのみ使用可能です。 入力: {s}")
+
+    interval_num = float(s[:-1])
+    if s[-1] == "m":
+        return timedelta(minutes=interval_num)
+    if s[-1] == "h":
+        return timedelta(hours=interval_num)
+    if s[-1] == "d":
+        return timedelta(days=interval_num)
 
 
 class Backtester:
@@ -28,8 +42,6 @@ class Backtester:
         self.account_info = account_info
         self.date_step_interval = date_step_interval
 
-    def _validate_date_step_interval(self):
-        pass
 
     def backtest(self):
         while True:
