@@ -1,6 +1,7 @@
 import pandas as pd
 from glob import glob
 from datetime import timedelta
+from datetime import datetime as dt
 
 class DataFetcher:
     """
@@ -9,7 +10,8 @@ class DataFetcher:
     """
     def __init__(self,
                  data_files: list = None,
-                 df: pd.DataFrame = None):
+                 df: pd.DataFrame = None,
+                 start_datetime: dt = None):
         """
         DataFetcherにDataFrameをセットする
         セットの方法は2通り。data_filesにファイルをセットするか、dfに直接DataFrameをセットする
@@ -25,6 +27,7 @@ class DataFetcher:
         else:
             raise AttributeError("data_filesとdfが両方Nullです")
         self._validate_data(self.df_data)
+        self.datetime = start_datetime
 
     def _validate_data(self, df):
         should_existing_columns = ["open", "close", "high", "low", "date", "code"]
@@ -38,3 +41,7 @@ class DataFetcher:
                     """
                 )
 
+    def fetch(self, step=timedelta):
+        self.datetime += step
+        df_fetch = self.df_data[self.df_data["date"] <= self.datetime]
+        return df_fetch
