@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime as dt
 from .position import PositionManager, Position
-from .hisotry import HistoryManager, History
+from .history import HistoryManager, History
 
 class Account:
 

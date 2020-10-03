@@ -12,8 +12,8 @@ class HistoryManager:
 @dataclasses.dataclass
 class History:
     id: int
-    position_id: int
     date: dt
     code: str
     amount: float  # if buy: plus; if sell: minus.
-    price: float
+    price_open: float
+    price_close: float

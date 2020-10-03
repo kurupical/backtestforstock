@@ -2,7 +2,7 @@
 from backtestforstock.datafetchers.core import DataFetcher
 from backtestforstock.features.core import FeatureProcessor
 from backtestforstock.strategies.core import Strategy
-from backtestforstock.account import AccountManager
+from backtestforstock.account import Account
 from datetime import timedelta
 
 
@@ -25,7 +25,7 @@ class Backtester:
                  data_fetcher: DataFetcher,
                  feature_processor: FeatureProcessor,
                  strategy: Strategy,
-                 account_info: AccountManager,
+                 account_info: Account,
                  date_step_interval: str
                  ):
         """
