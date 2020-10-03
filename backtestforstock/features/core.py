@@ -6,7 +6,7 @@ class FeatureProcessor:
     生データから特徴量変換するプログラム
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     def _transform_core(self, df):
