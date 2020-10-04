@@ -3,6 +3,7 @@ from backtestforstock.strategies.core import Strategy
 from backtestforstock.history import HistoryManager, History
 from backtestforstock.position import PositionManager, Position
 from backtestforstock.account import Account
+from backtestforstock.common import get_logger
 
 from datetime import timedelta
 from datetime import datetime as dt
@@ -15,28 +16,42 @@ class BuyAnytimeStrategy(Strategy):
     """
     def __init__(self,
                  amount,
-                 code="0000"):
+                 code):
         super().__init__()
         self.amount = amount
+        self.code = code
 
     def _trade_core(self,
                     df_data: pd.DataFrame,
                     account: Account):
-        account.buy(code=self.code, amount=self.amount)
+        account.trade(data=df_data.iloc[-1],
+                      amount=self.amount,
+                      price=df_data.iloc[-1]["open"],
+                      category="long")
 
 
 class SellAnytimeStrategy(Strategy):
     """
     常にコード0000を amount だけ売る戦略
     """
+    def __init__(self,
+                 amount,
+                 code):
+        super().__init__()
+        self.amount = amount
+        self.code = code
+
     def _trade_core(self,
                     df_data: pd.DataFrame,
                     account: Account):
-        account.sell(code="0000", amount=self.amount)
+        account.trade(data=df_data.iloc[-1],
+                      amount=self.amount,
+                      price=df_data.iloc[-1]["open"],
+                      category="short")
 
+class TestAccount(unittest.TestCase):
 
-class TestStrategies(unittest.TestCase):
-
+    base_dt = dt(year=2020, month=1, day=1)
     df_step1 = pd.DataFrame({"open": [100, 200],
                              "close": [200, 300],
                              "high": [250, 350],
@@ -61,7 +76,8 @@ class TestStrategies(unittest.TestCase):
         新規購入(買い)
         :return:
         """
-        account = Account(initial_cash=1_000_000)
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
         strategies = BuyAnytimeStrategy(code="0000", amount=100)
 
         strategies.trade(df_data=self.df_step1,
@@ -69,19 +85,21 @@ class TestStrategies(unittest.TestCase):
 
         expect_positions = [
             Position(id=0,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_step1["date"].iloc[-1],
                      code="0000",
                      amount=100,
-                     price=200)
+                     price=200,
+                     category="long")
         ]
 
         expect_histories = [
             History(id=0,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
-                    amount=-100,
+                    amount=100,
                     price_open=200,
-                    price_close=np.nan)
+                    price_close=np.nan,
+                    category="long")
         ]
         expect_cash = 1_000_000 - 200*100
 
@@ -96,7 +114,8 @@ class TestStrategies(unittest.TestCase):
         新規購入(売り)
         :return:
         """
-        account = Account(initial_cash=1_000_000)
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
         strategies = SellAnytimeStrategy(code="0000", amount=100)
 
         strategies.trade(df_data=self.df_step1,
@@ -104,19 +123,21 @@ class TestStrategies(unittest.TestCase):
 
         expect_positions = [
             Position(id=0,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_step1["date"].iloc[-1],
                      code="0000",
-                     amount=-100,
-                     price=200)
+                     amount=100,
+                     price=200,
+                     category="short")
         ]
 
         expect_histories = [
             History(id=0,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
-                    amount=-100,
+                    amount=100,
                     price_open=200,
-                    price_close=np.nan)
+                    price_close=np.nan,
+                    category="short")
         ]
 
         expect_cash = 1_000_000 - 200*100
@@ -131,7 +152,8 @@ class TestStrategies(unittest.TestCase):
         100株@200で購入, 100株@300で購入
         :return:
         """
-        account = Account(initial_cash=1_000_000)
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
         strategies = BuyAnytimeStrategy(code="0000", amount=100)
 
         strategies.trade(df_data=self.df_step1,
@@ -141,30 +163,34 @@ class TestStrategies(unittest.TestCase):
 
         expect_positions = [
             Position(id=0,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_step1["date"].iloc[-1],
                      code="0000",
-                     amount=200,
-                     price=100),
+                     amount=100,
+                     price=200,
+                     category="long"),
             Position(id=1,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_step2["date"].iloc[-1],
                      code="0000",
-                     amount=300,
-                     price=100),
+                     amount=100,
+                     price=300,
+                     category="long"),
         ]
 
         expect_histories = [
             History(id=0,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
                     amount=100,
                     price_open=200,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="long"),
             History(id=1,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step2["date"].iloc[-1],
                     code="0000",
                     amount=100,
                     price_open=300,
-                    price_close=np.nan)
+                    price_close=np.nan,
+                    category="long")
         ]
 
         expect_cash = 1_000_000 - 200*100 - 300*100
@@ -179,7 +205,8 @@ class TestStrategies(unittest.TestCase):
         100株@200で購入, 100株@300で売却
         :return:
         """
-        account = Account(initial_cash=1_000_000)
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
 
         # 買い
         strategies = BuyAnytimeStrategy(code="0000", amount=100)
@@ -195,17 +222,19 @@ class TestStrategies(unittest.TestCase):
 
         expect_histories = [
             History(id=0,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
                     amount=100,
                     price_open=200,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="long"),
             History(id=1,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step2["date"].iloc[-1],
                     code="0000",
-                    amount=-100,
+                    amount=100,
                     price_open=200,
-                    price_close=300)
+                    price_close=300,
+                    category="short")
         ]
 
         expect_cash = 1_000_000 + 100*100 # 100*100の利益
@@ -220,7 +249,8 @@ class TestStrategies(unittest.TestCase):
         100株@200で購入, 50株@300で売却
         :return:
         """
-        account = Account(initial_cash=1_000_000)
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
 
         # 買い
         strategies = BuyAnytimeStrategy(code="0000", amount=100)
@@ -229,33 +259,36 @@ class TestStrategies(unittest.TestCase):
 
         # 一部売却
         strategies = SellAnytimeStrategy(code="0000", amount=50)
-        strategies.trade(df_data=self.df_step1,
+        strategies.trade(df_data=self.df_step2,
                          account=account)
 
         expect_positions = [
             Position(id=0,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_step1["date"].iloc[-1],
                      code="0000",
                      amount=50,
-                     price=200),
+                     price=200,
+                     category="long"),
         ]
 
         expect_histories = [
             History(id=0,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
                     amount=100,
                     price_open=200,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="long"),
             History(id=1,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step2["date"].iloc[-1],
                     code="0000",
-                    amount=-50,
+                    amount=50,
                     price_open=200,
-                    price_close=300)
+                    price_close=300,
+                    category="short")
         ]
 
-        expect_cash = 1_000_000 - 200*50 + 300*50
+        expect_cash = 1_000_000 - 200*100 + 300*50
 
         self.assertEqual(expect_positions, account.position_manager.positions)
         self.assertEqual(expect_histories, account.history_manager.histories)
@@ -269,7 +302,8 @@ class TestStrategies(unittest.TestCase):
         #3 code0000を200株@300で売却 -> #1 完全解消, #2 100解消
         :return:
         """
-        account = Account(initial_cash=1_000_000)
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
 
         # 買い1
         strategies = BuyAnytimeStrategy(code="0000", amount=100)
@@ -288,40 +322,45 @@ class TestStrategies(unittest.TestCase):
 
         expect_positions = [
             Position(id=1,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_step1["date"].iloc[-1],
                      code="0000",
                      amount=100,
-                     price=200),
+                     price=200,
+                     category="long"),
         ]
 
         expect_histories = [
             History(id=0,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
                     amount=100,
                     price_open=200,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="long"),
             History(id=1,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
                     amount=200,
                     price_open=200,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="long"),
             History(id=2,  # Position #1
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step2["date"].iloc[-1],
                     code="0000",
-                    amount=-100,
+                    amount=100,
                     price_open=200,
-                    price_close=300),
+                    price_close=300,
+                    category="short"),
             History(id=3,  # Position #2
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step2["date"].iloc[-1],
                     code="0000",
-                    amount=-100,
+                    amount=100,
                     price_open=200,
-                    price_close=300)
+                    price_close=300,
+                    category="short")
         ]
 
-        expect_cash = 1_000_000 - 200*100 + 300*200
+        expect_cash = 1_000_000 - 200*300 + 300*200
 
         self.assertEqual(expect_positions, account.position_manager.positions)
         self.assertEqual(expect_histories, account.history_manager.histories)
@@ -336,61 +375,68 @@ class TestStrategies(unittest.TestCase):
         #3 code1000を200売却 -> #1 完全解消 + 空売り
         :return:
         """
-        account = Account(initial_cash=1_000_000)
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
 
         # 買い1
         strategies = BuyAnytimeStrategy(code="1000", amount=100)
-        strategies.trade(df_data=self.df_multi,
+        strategies.trade(df_data=self.df_multi.query(f"code == '1000'"),
                          account=account)
 
         # 買い2
         strategies = BuyAnytimeStrategy(code="0000", amount=200)
-        strategies.trade(df_data=self.df_multi,
+        strategies.trade(df_data=self.df_multi.query(f"code == '0000'"),
                          account=account)
 
-        # 一部売却
+        # 売り越し
         strategies = SellAnytimeStrategy(code="1000", amount=200)
-        strategies.trade(df_data=self.df_multi,
+        strategies.trade(df_data=self.df_multi.query(f"code == '1000'"),
                          account=account)
 
         expect_positions = [
             Position(id=1,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_multi["date"].iloc[-1],
                      code="0000",
                      amount=200,
-                     price=200),
+                     price=200,
+                     category="long"),
             Position(id=2,
-                     date=self.base_dt["date"].iloc[-1],
+                     date=self.df_multi["date"].iloc[-1],
                      code="1000",
-                     amount=-100,
-                     price=400),
+                     amount=100,
+                     price=400,
+                     category="short"),
         ]
 
         expect_histories = [
             History(id=0,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="1000",
                     amount=100,
                     price_open=400,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="long"),
             History(id=1,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="0000",
                     amount=200,
                     price_open=200,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="long"),
             History(id=2,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="1000",
-                    amount=-100,
+                    amount=100,
                     price_open=400,
-                    price_close=400),
+                    price_close=400,
+                    category="short"),
             History(id=3,
-                    date=self.base_dt["date"].iloc[-1],
+                    date=self.df_step1["date"].iloc[-1],
                     code="1000",
-                    amount=-100,
+                    amount=100,
                     price_open=400,
-                    price_close=np.nan),
+                    price_close=np.nan,
+                    category="short"),
         ]
 
         expect_cash = 1_000_000 - 400*100 - 200*200
@@ -404,7 +450,8 @@ class TestStrategies(unittest.TestCase):
         現金が足りない場合
         :return:
         """
-        account = Account(initial_cash=100)
+        account = Account(initial_cash=100,
+                          logger=get_logger())
         strategies = BuyAnytimeStrategy(code="0000", amount=100)
 
         strategies.trade(df_data=self.df_step1,
