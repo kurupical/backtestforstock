@@ -7,7 +7,7 @@ from backtestforstock.account import Account
 from datetime import timedelta
 
 
-def validate_date_step_interval(s: str) -> timedelta:
+def convert_date_step_interval(s: str) -> timedelta:
     if s[-1] not in ["m", "h", "d"]:
         raise ValueError(f"date_step_interval の単位は m, h, dのみ使用可能です。 入力: {s}")
 
@@ -40,18 +40,18 @@ class BackTester:
         self.data_fetcher = data_fetcher
         self.strategy = strategy
         self.account = account
-        self.date_step_interval = date_step_interval
+        self.date_step_interval = convert_date_step_interval(date_step_interval)
         if feature_processor is None:
             self.feature_processor = NothingProcessor()
         else:
             self.feature_processor = feature_processor
-
+        self.data_fetcher.datetime -= self.date_step_interval
 
     def run(self):
-        while True:
+        while not self.data_fetcher.end_of_data:
             self.step()
 
     def step(self):
-        df_data = self.data_fetcher.fetch_data()
+        df_data = self.data_fetcher.fetch(step=self.date_step_interval)
         df_processed = self.feature_processor.transform(df=df_data)
-        self.account = self.strategy.trade(df_processed, self.account)
+        self.strategy.trade(df_processed, self.account)

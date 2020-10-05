@@ -28,6 +28,8 @@ class DataFetcher:
             raise AttributeError("data_filesとdfが両方Nullです")
         self._validate_data(self.df_data)
         self.datetime = start_datetime
+        self.end_of_data = False
+        self.max_date = self.df_data["date"].max()
 
     def _validate_data(self, df):
         should_existing_columns = ["open", "close", "high", "low", "date", "code"]
@@ -41,7 +43,10 @@ class DataFetcher:
                     """
                 )
 
-    def fetch(self, step=timedelta):
+    def fetch(self,
+              step: timedelta):
         self.datetime += step
         df_fetch = self.df_data[self.df_data["date"] <= self.datetime]
+        if self.max_date <= self.datetime:
+            self.end_of_data = True
         return df_fetch
