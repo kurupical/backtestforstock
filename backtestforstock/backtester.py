@@ -1,6 +1,7 @@
 
 from backtestforstock.datafetchers.core import DataFetcher
 from backtestforstock.features.core import FeatureProcessor
+from backtestforstock.features.empty import NothingProcessor
 from backtestforstock.strategies.core import Strategy
 from backtestforstock.account import Account
 from datetime import timedelta
@@ -19,14 +20,14 @@ def validate_date_step_interval(s: str) -> timedelta:
         return timedelta(days=interval_num)
 
 
-class Backtester:
+class BackTester:
 
     def __init__(self,
                  data_fetcher: DataFetcher,
-                 feature_processor: FeatureProcessor,
                  strategy: Strategy,
-                 account_info: Account,
-                 date_step_interval: str
+                 account: Account,
+                 date_step_interval: str,
+                 feature_processor: FeatureProcessor=None,
                  ):
         """
 
@@ -37,17 +38,20 @@ class Backtester:
         :param date_step_interval: "m", "h", "d" can use example: "10m", "1h", "2d"
         """
         self.data_fetcher = data_fetcher
-        self.feature_processor = feature_processor
         self.strategy = strategy
-        self.account_info = account_info
+        self.account = account
         self.date_step_interval = date_step_interval
+        if feature_processor is None:
+            self.feature_processor = NothingProcessor()
+        else:
+            self.feature_processor = feature_processor
 
 
-    def backtest(self):
+    def run(self):
         while True:
             self.step()
 
     def step(self):
         df_data = self.data_fetcher.fetch_data()
         df_processed = self.feature_processor.transform(df=df_data)
-        self.account_info = self.strategy.trade(df_processed, self.account_info)
+        self.account = self.strategy.trade(df_processed, self.account)
