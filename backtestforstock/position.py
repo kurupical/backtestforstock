@@ -2,6 +2,7 @@ import dataclasses
 from datetime import datetime as dt
 import pandas as pd
 from logging import Logger
+from backtestforstock.callbacks.core import PositionCallback
 
 class PositionManager:
     def __init__(self,
@@ -69,4 +70,4 @@ class Position:
     category: str  # long or short
     amount: float  # if buy: plus; if sell: minus.
     price: float
-
+    callback: list[PositionCallback] = []
