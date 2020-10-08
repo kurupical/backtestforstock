@@ -2,7 +2,9 @@ import pandas as pd
 from datetime import datetime as dt
 from .position import PositionManager, Position
 from .history import HistoryManager, History
+from backtestforstock.callbacks.core import PositionCallback
 from logging import Logger
+from typing import List
 
 class Account:
 
@@ -79,7 +81,8 @@ class Account:
               data: pd.Series,
               amount: float,
               price: float,
-              category: str):
+              category: str,
+              callbacks: List[PositionCallback] = []):
         """
         data を price で amount だけ catergory に従って取引する
         反対ポジションを持ってる場合は相殺する
@@ -111,8 +114,8 @@ class Account:
             self.logger.debug(f"close position position: {position}, trade_amount: {trade_amount}")
 
             self.close_position(position=position,
-                                     amount=trade_amount,
-                                     price=price,
+                                amount=trade_amount,
+                                price=price,
                                 date=data.date)
             amount -= trade_amount
 
@@ -131,9 +134,9 @@ class Account:
             self.logger.debug(f"新規ポジション建て code: {data.code}, amount: {amount}, price: {price}")
             self.open_position(code=data.code,
                                date=data.date,
-                                     amount=amount,
-                                     price=price,
-                                     category=category)
+                               amount=amount,
+                               price=price,
+                               category=category)
         self.logger.debug(f"trade end. cash: {self.cash}")
         return
 
