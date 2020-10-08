@@ -86,14 +86,13 @@ class LimitTwiceStrategy(Strategy):
                               amount=100,
                               price=price,
                               category="long",
-                              callbacks=[OrderCallback(limit_price=price*2)]
-                              )
+                              callbacks=[OrderCallback(limit_price=price*2)])
             else:
                 account.trade(data=df.iloc[-1],
                               amount=200,
                               price=price,
                               category="short",
-                              callbacks=[OrderCallback(limit_price=price*2))
+                              callbacks=[OrderCallback(limit_price=price*2)])
 
 
 class StopHalfStrategy(Strategy):
@@ -118,14 +117,13 @@ class StopHalfStrategy(Strategy):
                               amount=100,
                               price=price,
                               category="long",
-                              callbacks=[OrderCallback(stop_price=price/2)]
-                              )
+                              callbacks=[OrderCallback(stop_price=price/2)])
             else:
                 account.trade(data=df.iloc[-1],
                               amount=200,
                               price=price,
                               category="short",
-                              callbacks=[OrderCallback(stop_price=price*2))
+                              callbacks=[OrderCallback(stop_price=price*2)])
 
 
 class LimitTwiceAndStopHalfStrategy(Strategy):
@@ -150,14 +148,13 @@ class LimitTwiceAndStopHalfStrategy(Strategy):
                               amount=100,
                               price=price,
                               category="long",
-                              callbacks=[OrderCallback(limit_price=price*2, stop_price=price/2)]
-                              )
+                              callbacks=[OrderCallback(limit_price=price*2, stop_price=price/2)])
             else:
                 account.trade(data=df.iloc[-1],
                               amount=200,
                               price=price,
                               category="short",
-                              callbacks=[OrderCallback(limit_price=price*2, stop_price=price*2))
+                              callbacks=[OrderCallback(limit_price=price*2, stop_price=price*2)])
 
 class TestBackTester(unittest.TestCase):
     df_0000 = pd.DataFrame({"open": [100, 200, 300, 400, 500],
@@ -178,6 +175,19 @@ class TestBackTester(unittest.TestCase):
                             "low": [100, 80, 70, 40, 30],
                             "date": [dt(year=2020, month=1, day=1)+timedelta(days=x) for x in range(5)],
                             "code": ["2000"]*5})
+    df_3000 = pd.DataFrame({"open": [200, 80, 180],
+                            "close": [120, 80, 160],
+                            "high": [200, 140, 180],
+                            "low": [100, 80, 160],
+                            "date": [dt(year=2020, month=1, day=1)+timedelta(days=x) for x in range(3)],
+                            "code": ["2000"]*3})
+
+    df_4000 = pd.DataFrame({"open": [200, 120, 200],
+                            "close": [120, 80, 280],
+                            "high": [200, 140, 280],
+                            "low": [100, 80, 160],
+                            "date": [dt(year=2020, month=1, day=1)+timedelta(days=x) for x in range(3)],
+                            "code": ["2000"]*3})
 
     def test_normal(self):
         """
@@ -310,7 +320,61 @@ class TestBackTester(unittest.TestCase):
 
         self.assertEqual(expect_cash, backtester.account.cash)
 
+    def test_hit_on_step_begin(self):
+        """
+        全銘柄、逆指値を購入株価の半分にする
+        on_step_beginで刺さった場合は、openの値段で取引する
+        :return:
+        """
+        data_fetcher = DataFetcher(df=self.df_3000,
+                                   start_datetime=dt(year=2020, month=1, day=1))
+        strategy = LimitTwiceAndStopHalfStrategy()
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
 
+        backtester = BackTester(data_fetcher=data_fetcher,
+                                strategy=strategy,
+                                account=account,
+                                date_step_interval="1d")
+        backtester.run()
+
+        expect_cash = 1_000_000
+        # code=3000
+        expect_cash -= 200*100  # 1日目
+        expect_cash += 80*100  # 2日目(hit stop)
+        expect_cash -= 80*100  # 2日目
+        expect_cash += 180*100  # 3日目(hit limit)
+        expect_cash -= 180*100  # 3日目(hit limit)
+
+        self.assertEqual(expect_cash, backtester.account.cash)
+
+    def test_hit_on_step_end(self):
+        """
+        全銘柄、逆指値を購入株価の半分にする
+        on_step_endで刺さった場合は、指値/逆指値の金額で取引する
+        :return:
+        """
+        data_fetcher = DataFetcher(df=self.df_4000,
+                                   start_datetime=dt(year=2020, month=1, day=1))
+        strategy = LimitTwiceAndStopHalfStrategy()
+        account = Account(initial_cash=1_000_000,
+                          logger=get_logger())
+
+        backtester = BackTester(data_fetcher=data_fetcher,
+                                strategy=strategy,
+                                account=account,
+                                date_step_interval="1d")
+        backtester.run()
+
+        expect_cash = 1_000_000
+        # code=4000
+        expect_cash -= 200*100  # 1日目
+        expect_cash -= 120*100  # 2日目
+        expect_cash += 100*100  # 2日目(hit stop)
+        expect_cash -= 200*100  # 3日目
+        expect_cash += 240*100  # 3日目(hit limit)
+
+        self.assertEqual(expect_cash, backtester.account.cash)
 
 
 if __name__ == "__main__":
