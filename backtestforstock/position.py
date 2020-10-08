@@ -30,14 +30,15 @@ class PositionManager:
         return ret
 
     def open_position(self,
-                      data: pd.Series,
+                      code: str,
+                      date: str,
                       amount: float,
                       price: float,
                       category: str):
 
         position = Position(id=self.id_max,
-                            date=data["date"],
-                            code=data["code"],
+                            date=date,
+                            code=code,
                             amount=amount,
                             price=price,
                             category=category)

@@ -13,23 +13,24 @@ class HistoryManager:
         self.id_max = 0
 
     def add(self,
-            data: pd.Series,
+            code: str,
+            date: dt,
             amount: float,
             price: float,
             category: str,
             position=None):
         if position == None:
             history = History(id=self.id_max,
-                              code=data["code"],
-                              date=data["date"],
+                              code=code,
+                              date=date,
                               amount=amount,
                               category=category,
                               price_open=price,
                               price_close=np.nan)
         else:
             history = History(id=self.id_max,
-                              code=data["code"],
-                              date=data["date"],
+                              code=code,
+                              date=date,
                               amount=amount,
                               category=category,
                               price_open=position.price,
