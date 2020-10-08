@@ -2,7 +2,9 @@ import pandas as pd
 from datetime import datetime as dt
 from .position import PositionManager, Position
 from .history import HistoryManager, History
+from backtestforstock.callbacks.core import PositionCallback
 from logging import Logger
+from typing import List
 
 class Account:
 
@@ -37,11 +39,50 @@ class Account:
 
         return True
 
+    def close_position(self,
+                       position: Position,
+                       amount: float,
+                       price: float,
+                       date: dt):
+        self.position_manager.close_position(position=position,
+                                             amount=amount)
+        self.cash += amount * price
+        if position.category == "short":
+            category = "long"
+        else:
+            category = "short"
+
+        self.history_manager.add(code=position.code,
+                                 date=date,
+                                 amount=amount,
+                                 category=category,
+                                 price=price,
+                                 position=position)
+
+    def open_position(self,
+                      code: str,
+                      date: dt,
+                      amount: float,
+                      price: float,
+                      category: str):
+        self.position_manager.open_position(code=code,
+                                            date=date,
+                                            amount=amount,
+                                            price=price,
+                                            category=category)
+        self.history_manager.add(code=code,
+                                 date=date,
+                                 amount=amount,
+                                 price=price,
+                                 category=category)
+        self.cash -= amount * price
+
     def trade(self,
               data: pd.Series,
               amount: float,
               price: float,
-              category: str):
+              category: str,
+              callbacks: List[PositionCallback] = []):
         """
         data を price で amount だけ catergory に従って取引する
         反対ポジションを持ってる場合は相殺する
@@ -72,16 +113,12 @@ class Account:
                 trade_amount = amount
             self.logger.debug(f"close position position: {position}, trade_amount: {trade_amount}")
 
-            self.position_manager.close_position(position=position,
-                                                 amount=trade_amount)
+            self.close_position(position=position,
+                                amount=trade_amount,
+                                price=price,
+                                date=data.date)
             amount -= trade_amount
-            self.cash += trade_amount * price
 
-            self.history_manager.add(data=data,
-                                     amount=trade_amount,
-                                     category=category,
-                                     price=price,
-                                     position=position)
             if amount == 0:
                 break
 
@@ -95,16 +132,11 @@ class Account:
             self.logger.debug(f"ポジション相殺のみで完了")
         if amount > 0:
             self.logger.debug(f"新規ポジション建て code: {data.code}, amount: {amount}, price: {price}")
-            self.position_manager.open_position(data=data,
-                                                amount=amount,
-                                                price=price,
-                                                category=category)
-            self.history_manager.add(data=data,
-                                     amount=amount,
-                                     price=price,
-                                     category=category)
-            self.cash -= amount * price
-
+            self.open_position(code=data.code,
+                               date=data.date,
+                               amount=amount,
+                               price=price,
+                               category=category)
         self.logger.debug(f"trade end. cash: {self.cash}")
         return
 
