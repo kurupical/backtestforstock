@@ -32,17 +32,22 @@ class PositionManager:
 
     def open_position(self,
                       code: str,
-                      date: str,
+                      date: dt,
                       amount: float,
                       price: float,
-                      category: str):
+                      category: str,
+                      callbacks: List[PositionCallback]):
 
         position = Position(id=self.id_max,
                             date=date,
                             code=code,
                             amount=amount,
                             price=price,
-                            category=category)
+                            category=category,
+                            callbacks=callbacks)
+        for callback in callbacks:
+            callback.set_position(position)
+            callback.set_logger(self.logger)
         self.id_max += 1
         self.positions.append(position)
         return

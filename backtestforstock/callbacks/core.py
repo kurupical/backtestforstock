@@ -1,6 +1,8 @@
 import pandas as pd
+from logging import Logger
 # from backtestforstock.account import Account
 # from backtestforstock.position import Position
+
 
 class PositionCallback:
     """
@@ -14,4 +16,10 @@ class PositionCallback:
                     df: pd.DataFrame):
         raise NotImplementedError
     """
-    pass
+    def set_position(self,
+                     position):
+        self.position = position
+
+    def set_logger(self,
+                   logger: Logger):
+        self.logger = logger

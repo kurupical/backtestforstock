@@ -64,12 +64,14 @@ class Account:
                       date: dt,
                       amount: float,
                       price: float,
-                      category: str):
+                      category: str,
+                      callbacks: List[PositionCallback]):
         self.position_manager.open_position(code=code,
                                             date=date,
                                             amount=amount,
                                             price=price,
-                                            category=category)
+                                            category=category,
+                                            callbacks=callbacks)
         self.history_manager.add(code=code,
                                  date=date,
                                  amount=amount,
@@ -94,10 +96,17 @@ class Account:
         """
         self.logger.info(f"\n")
         self.logger.info(f"trade start! code: {data.code} amount: {amount}, price: {price}, category: {category}, cash: {self.cash}")
+        category = category.lower()
+
+        # callbacks(on_step_begin)
+        positions = self.position_manager.get_positions(code=data["code"])
+        for position in positions:
+            for callback in position.callbacks:
+                callback.on_step_begin(account=self,
+                                       data=data)
+
         # close position
         positions = self.position_manager.get_positions(code=data["code"])
-
-        category = category.lower()
         for position in positions:
             if category == "long" and position.amount > 0:
                 self.logger.debug("ignore: long and position.amount > 0")
@@ -136,8 +145,19 @@ class Account:
                                date=data.date,
                                amount=amount,
                                price=price,
-                               category=category)
+                               category=category,
+                               callbacks=callbacks)
+
+        # callbacks(on_step_end)
+        positions = self.position_manager.get_positions(code=data["code"])
+        for position in positions:
+            for callback in position.callbacks:
+                callback.on_step_end(account=self,
+                                     data=data)
+
         self.logger.debug(f"trade end. cash: {self.cash}")
+
+
         return
 
     def report(self):

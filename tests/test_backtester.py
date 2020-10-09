@@ -81,18 +81,11 @@ class LimitTwiceStrategy(Strategy):
                 total_amount += position.amount
 
             price = df.iloc[-1]["open"]
-            if total_amount < 200:
-                account.trade(data=df.iloc[-1],
-                              amount=100,
-                              price=price,
-                              category="long",
-                              callbacks=[OrderCallback(limit_price=price*2)])
-            else:
-                account.trade(data=df.iloc[-1],
-                              amount=200,
-                              price=price,
-                              category="short",
-                              callbacks=[OrderCallback(limit_price=price*2)])
+            account.trade(data=df.iloc[-1],
+                          amount=100,
+                          price=price,
+                          category="long",
+                          callbacks=[OrderCallback(limit_price=price*2)])
 
 
 class StopHalfStrategy(Strategy):
@@ -112,19 +105,11 @@ class StopHalfStrategy(Strategy):
                 total_amount += position.amount
 
             price = df.iloc[-1]["open"]
-            if total_amount < 200:
-                account.trade(data=df.iloc[-1],
-                              amount=100,
-                              price=price,
-                              category="long",
-                              callbacks=[OrderCallback(stop_price=price/2)])
-            else:
-                account.trade(data=df.iloc[-1],
-                              amount=200,
-                              price=price,
-                              category="short",
-                              callbacks=[OrderCallback(stop_price=price*2)])
-
+            account.trade(data=df.iloc[-1],
+                          amount=100,
+                          price=price,
+                          category="long",
+                          callbacks=[OrderCallback(stop_price=price/2)])
 
 class LimitTwiceAndStopHalfStrategy(Strategy):
     """
@@ -143,18 +128,11 @@ class LimitTwiceAndStopHalfStrategy(Strategy):
                 total_amount += position.amount
 
             price = df.iloc[-1]["open"]
-            if total_amount < 200:
-                account.trade(data=df.iloc[-1],
-                              amount=100,
-                              price=price,
-                              category="long",
-                              callbacks=[OrderCallback(limit_price=price*2, stop_price=price/2)])
-            else:
-                account.trade(data=df.iloc[-1],
-                              amount=200,
-                              price=price,
-                              category="short",
-                              callbacks=[OrderCallback(limit_price=price*2, stop_price=price*2)])
+            account.trade(data=df.iloc[-1],
+                          amount=100,
+                          price=price,
+                          category="long",
+                          callbacks=[OrderCallback(limit_price=price*2, stop_price=price/2)])
 
 class TestBackTester(unittest.TestCase):
     df_0000 = pd.DataFrame({"open": [100, 200, 300, 400, 500],
@@ -178,14 +156,13 @@ class TestBackTester(unittest.TestCase):
     df_3000 = pd.DataFrame({"open": [200, 80, 180],
                             "close": [120, 80, 160],
                             "high": [200, 140, 180],
-                            "low": [100, 80, 160],
+                            "low": [110, 80, 160],
                             "date": [dt(year=2020, month=1, day=1)+timedelta(days=x) for x in range(3)],
                             "code": ["2000"]*3})
-
     df_4000 = pd.DataFrame({"open": [200, 120, 200],
                             "close": [120, 80, 280],
                             "high": [200, 140, 280],
-                            "low": [100, 80, 160],
+                            "low": [120, 80, 160],
                             "date": [dt(year=2020, month=1, day=1)+timedelta(days=x) for x in range(3)],
                             "code": ["2000"]*3})
 
@@ -344,7 +321,7 @@ class TestBackTester(unittest.TestCase):
         expect_cash += 80*100  # 2日目(hit stop)
         expect_cash -= 80*100  # 2日目
         expect_cash += 180*100  # 3日目(hit limit)
-        expect_cash -= 180*100  # 3日目(hit limit)
+        expect_cash -= 180*100  # 3日目
 
         self.assertEqual(expect_cash, backtester.account.cash)
 
