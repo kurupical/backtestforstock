@@ -1,6 +1,7 @@
 import unittest
 import pandas as pd
 import numpy as np
+import os
 from backtestforstock.backtester import convert_date_step_interval
 from backtestforstock.strategies.core import Strategy
 from backtestforstock.account import Account
@@ -9,8 +10,11 @@ from backtestforstock.features.empty import NothingProcessor
 from backtestforstock.backtester import BackTester
 from backtestforstock.common import get_logger
 from backtestforstock.callbacks.order import OrderCallback
+from backtestforstock.reporter.core import Summary, ProfitAndLossSummary
+from backtestforstock.reporter.basic import BasicReporter
 from datetime import timedelta
 from datetime import datetime as dt
+
 
 class TestValidateDateStepInterval(unittest.TestCase):
     def test_1m(self):
@@ -331,11 +335,13 @@ class TestBackTester(unittest.TestCase):
         on_step_endで刺さった場合は、指値/逆指値の金額で取引する
         :return:
         """
+        output_dir = "tests/data/backtester/"
         data_fetcher = DataFetcher(df=self.df_4000,
                                    start_datetime=dt(year=2020, month=1, day=1))
         strategy = LimitTwiceAndStopHalfStrategy()
         account = Account(initial_cash=1_000_000,
-                          logger=get_logger())
+                          logger=get_logger(),
+                          reporter=BasicReporter(output_dir=output_dir))
 
         backtester = BackTester(data_fetcher=data_fetcher,
                                 strategy=strategy,
@@ -353,6 +359,37 @@ class TestBackTester(unittest.TestCase):
 
         self.assertEqual(expect_cash, backtester.account.cash)
 
+        expect_cash += 280*100 # 持ってるポジションを全部閉じる (200@100)
+
+        expect_earn_amount = expect_cash - 1_000_000
+        expect_earn_summary = ProfitAndLossSummary(
+            pl_amount=expect_earn_amount,
+            pl_mean=expect_earn_amount/3,
+            trade_amount=200*100 + 120*100 + 200*100,
+            trade_count=3
+        )
+
+        expect_profit_amount = (240-120)*100 + (280-200)*100
+        expect_profit_summary = ProfitAndLossSummary(
+            pl_amount=expect_profit_amount,
+            pl_mean=expect_profit_amount/2,
+            trade_amount=120*100 + 200*100,
+            trade_count=2
+        )
+
+        expect_loss_amount = (200-100)*100
+        expect_loss_summary = ProfitAndLossSummary(
+            pl_amount=expect_loss_amount,
+            pl_mean=expect_loss_amount,
+            trade_amount=200*100,
+            trade_count=1
+        )
+
+        expect_summary = Summary(earn_summary=expect_earn_summary,
+                                 profit_summary=expect_profit_summary,
+                                 loss_summary=expect_loss_summary)
+        self.assertEqual(account.reporter.summary, expect_summary)
+        os.path.isfile(f"{output_dir}/result.html")
 
 if __name__ == "__main__":
     unittest.main()
