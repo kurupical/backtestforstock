@@ -30,5 +30,4 @@ class Summary:
     earn_summary: ProfitAndLossSummary
     profit_summary: ProfitAndLossSummary
     loss_summary: ProfitAndLossSummary
-    max_draw_down: float
 
