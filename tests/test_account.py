@@ -234,7 +234,8 @@ class TestAccount(unittest.TestCase):
                     amount=100,
                     price_open=200,
                     price_close=300,
-                    category="short")
+                    category="short",
+                    id_close=0)
         ]
 
         expect_cash = 1_000_000 + 100*100 # 100*100の利益
@@ -285,7 +286,8 @@ class TestAccount(unittest.TestCase):
                     amount=50,
                     price_open=200,
                     price_close=300,
-                    category="short")
+                    category="short",
+                    id_close=0)
         ]
 
         expect_cash = 1_000_000 - 200*100 + 300*50
@@ -350,14 +352,16 @@ class TestAccount(unittest.TestCase):
                     amount=100,
                     price_open=200,
                     price_close=300,
-                    category="short"),
+                    category="short",
+                    id_close=0),
             History(id=3,  # Position #2
                     date=self.df_step2["date"].iloc[-1],
                     code="0000",
                     amount=100,
                     price_open=200,
                     price_close=300,
-                    category="short")
+                    category="short",
+                    id_close=1)
         ]
 
         expect_cash = 1_000_000 - 200*300 + 300*200
@@ -429,7 +433,8 @@ class TestAccount(unittest.TestCase):
                     amount=100,
                     price_open=400,
                     price_close=400,
-                    category="short"),
+                    category="short",
+                    id_close=0),
             History(id=3,
                     date=self.df_step1["date"].iloc[-1],
                     code="1000",

@@ -34,7 +34,8 @@ class HistoryManager:
                               amount=amount,
                               category=category,
                               price_open=position.price,
-                              price_close=price)
+                              price_close=price,
+                              id_close=position.id)
         self.histories.append(history)
         self.id_max += 1
         return
@@ -47,4 +48,5 @@ class History:
     category: str  # long or short
     amount: float  # if buy: plus; if sell: minus.
     price_open: float
-    price_close: float
+    price_close: float = None
+    id_close: int = None
